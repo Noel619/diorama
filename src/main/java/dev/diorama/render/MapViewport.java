@@ -7,10 +7,15 @@ import com.mojang.renderpearl.api.textures.FilterMode;
 import com.mojang.renderpearl.api.textures.GpuSampler;
 import com.mojang.renderpearl.api.textures.GpuTexture;
 import com.mojang.renderpearl.api.textures.GpuTextureView;
-//?} else {
+//?} else if >=1.21.11 {
 /*import com.mojang.blaze3d.textures.AddressMode;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSampler;
+import com.mojang.blaze3d.textures.GpuTexture;
+import com.mojang.blaze3d.textures.GpuTextureView;
+*///?} else {
+/*import com.mojang.blaze3d.textures.AddressMode;
+import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
 *///?}
@@ -161,9 +166,13 @@ public final class MapViewport {
 		int tu1 = (int) Math.floor(u1 / units);
 		int tv1 = (int) Math.floor(v1 / units);
 		// Minified tiles blend across mips; magnified ones stay crisp so blocks keep their edges.
+		//? if >=1.21.11 {
 		GpuSampler sampler = RenderSystem.getSamplerCache().getSampler(
 			AddressMode.CLAMP_TO_EDGE, AddressMode.CLAMP_TO_EDGE, FilterMode.LINEAR, view.zoom() >= Projection.PIXELS_PER_UNIT ? FilterMode.NEAREST : FilterMode.LINEAR, true
 		);
+		//?} else {
+		/*FilterMode magnify = view.zoom() >= Projection.PIXELS_PER_UNIT ? FilterMode.NEAREST : FilterMode.LINEAR;
+		*///?}
 		float size = (float) (units * view.zoom());
 		for (int tu = tu0 - 1; tu <= tu1 + 1; tu++) {
 			for (int tv = tv0 - 1; tv <= tv1 + 1; tv++) {
@@ -178,9 +187,17 @@ public final class MapViewport {
 				}
 				float sx = view.screenX(tu * units);
 				float sy = view.screenY(tv * units);
+				//? if <1.21.11 {
+				/*// Before 1.21.11 a texture carried its own sampling state.
+				FogTextures.sampleWith(tile.view(), AddressMode.CLAMP_TO_EDGE, magnify, true);
+				*///?}
 				graphics.guiRenderState.addGuiElement(QuadElement.rect(
 					RenderPipelines.GUI_TEXTURED,
+					//? if >=1.21.11 {
 					TextureSetup.singleTexture(tile.view(), sampler),
+					//?} else {
+					/*TextureSetup.singleTexture(tile.view()),
+					*///?}
 					new Matrix3x2f(graphics.pose()),
 					sx, sy, sx + size, sy + size,
 					0, 0, 1, 1,
@@ -189,9 +206,16 @@ public final class MapViewport {
 				));
 				GpuTextureView overlay = overlays == 0 || lod > 0 ? null : tile.overlay(overlays);
 				if (overlay != null) {
+					//? if <1.21.11 {
+					/*FogTextures.sampleWith(overlay, AddressMode.CLAMP_TO_EDGE, magnify, true);
+					*///?}
 					graphics.guiRenderState.addGuiElement(QuadElement.rect(
 						RenderPipelines.GUI_TEXTURED,
+						//? if >=1.21.11 {
 						TextureSetup.singleTexture(overlay, sampler),
+						//?} else {
+						/*TextureSetup.singleTexture(overlay),
+						*///?}
 						new Matrix3x2f(graphics.pose()),
 						sx, sy, sx + size, sy + size,
 						0, 0, 1, 1,
@@ -238,12 +262,18 @@ public final class MapViewport {
 		int quality = TileBaker.fast() ? 4 : 0;
 		int params = (scaleCode * 16 | quality) << 24 | (noiseU * 32) << 16 | (noiseV * 32) << 8 | fogCode;
 
+		//? if >=1.21.11 {
 		TextureSetup textures = TextureSetup.doubleTexture(
 			this.maskView,
 			RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR),
 			FogTextures.noise(),
 			RenderSystem.getSamplerCache().getRepeat(FilterMode.LINEAR)
 		);
+		//?} else {
+		/*FogTextures.sampleWith(this.maskView, AddressMode.CLAMP_TO_EDGE, FilterMode.LINEAR, false);
+		FogTextures.sampleWith(FogTextures.noise(), AddressMode.REPEAT, FilterMode.LINEAR, false);
+		TextureSetup textures = TextureSetup.doubleTexture(this.maskView, FogTextures.noise());
+		*///?}
 		graphics.guiRenderState.addGuiElement(QuadElement.rect(
 			DioramaPipelines.FOG,
 			textures,
