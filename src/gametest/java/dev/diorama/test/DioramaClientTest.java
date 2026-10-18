@@ -59,7 +59,7 @@ public class DioramaClientTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		context.getInput().resizeWindow(1600, 900);
-		context.runOnClient(mc -> mc.options.renderDistance().set(12));
+		context.runOnClient(mc -> mc.options.renderDistance().set(Integer.getInteger("diorama.test.renderDistance", 12)));
 		String seed = System.getProperty("diorama.seed", "diorama");
 		Set<String> tests = selectedTests();
 		if (tests.contains("showcase") && tests.size() > 1) {
@@ -82,7 +82,7 @@ public class DioramaClientTest implements FabricClientGameTest {
 				world.getServer().runCommand("tp @a " + tp);
 			}
 
-			context.waitFor(mc -> MapSession.get() != null && MapSession.get().map().chunkCount() > 400, 2400);
+			context.waitFor(mc -> MapSession.get() != null && MapSession.get().map().chunkCount() > Integer.getInteger("diorama.test.minimumChunks", 400), 2400);
 			settle(context, 100);
 			save = world.getWorldSave();
 			spawnCell = tests.contains("saved-map") ? knownSpawnCell(context) : null;
